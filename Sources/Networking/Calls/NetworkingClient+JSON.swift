@@ -18,8 +18,16 @@ public extension NetworkingClient {
         post(route, params: params).toJSON()
     }
 
+    func post(_ route: String, rawData: Data) -> AnyPublisher<Any, Error> {
+        post(route, rawData: rawData).toJSON()
+    }
+
     func put(_ route: String, params: Params = Params()) -> AnyPublisher<Any, Error> {
         put(route, params: params).toJSON()
+    }
+
+    func put(_ route: String, rawData: Data) -> AnyPublisher<Any, Error> {
+        put(route, rawData: rawData).toJSON()
     }
 
     func patch(_ route: String, params: Params = Params()) -> AnyPublisher<Any, Error> {
@@ -44,9 +52,22 @@ public extension NetworkingClient {
         let data = try await req.execute()
         return try JSONSerialization.jsonObject(with: data, options: [])
     }
+
+    func post(_ route: String, rawData: Data) async throws -> Any {
+        let req = request(.post, route, data: rawData)
+        let data = try await req.execute()
+        return try JSONSerialization.jsonObject(with: data, options: [])
+    }
     
     func put(_ route: String, params: Params = Params()) async throws -> Any {
         let req = request(.put, route, params: params)
+        let data = try await req.execute()
+        return try JSONSerialization.jsonObject(with: data, options: [])
+    }
+
+
+    func put(_ route: String, rawData: Data) async throws -> Any {
+        let req = request(.put, route, data: rawData)
         let data = try await req.execute()
         return try JSONSerialization.jsonObject(with: data, options: [])
     }
