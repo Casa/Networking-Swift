@@ -48,7 +48,7 @@ public extension NetworkingClient {
         }
         updateRequest()
         req.requestRetrier = { [weak self] in
-            self?.requestRetrier?($0, $1)?
+            self?.requestRetrier?($0, $1, $2)?
                 .handleEvents(receiveOutput: { _ in
                     updateRequest()
                 })

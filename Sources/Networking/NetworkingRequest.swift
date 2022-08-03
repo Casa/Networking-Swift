@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-public typealias NetworkRequestRetrier = (_ request: URLRequest, _ error: Error) -> AnyPublisher<Void, Error>?
+public typealias NetworkRequestRetrier = (_ request: URLRequest, _ error: Error, _ retryCount: Int) -> AnyPublisher<Void, Error>?
 
 public class NetworkingRequest: NSObject {
     
@@ -95,11 +95,11 @@ public class NetworkingRequest: NSObject {
                     }
                 }
                 return data
-            }.tryCatch({ [weak self, urlRequest] error -> AnyPublisher<Data, Error> in
+            }.tryCatch({ [weak self] error -> AnyPublisher<Data, Error> in
                 guard
                     let self = self,
-                    retryCount > 1,
-                    let retryPublisher = self.requestRetrier?(urlRequest, error)
+                    retryCount >= 1,
+                    let retryPublisher = self.requestRetrier?(urlRequest, error, retryCount)
                 else {
                     throw error
                 }
