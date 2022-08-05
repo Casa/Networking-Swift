@@ -17,7 +17,8 @@ class NetworkingLogger {
         }
         if let method = request.httpMethod,
             let url = request.url {
-            print("\(method) '\(url.absoluteString)'")
+            print("----- HTTP Request -----\n")
+            print("\(method) to '\(url.absoluteString)'")
             logHeaders(request)
             logBody(request)
 
@@ -40,24 +41,29 @@ class NetworkingLogger {
     }
 
     private func logHeaders(_ urlRequest: URLRequest) {
+        print("HEADERS:\n")
         if let allHTTPHeaderFields = urlRequest.allHTTPHeaderFields {
             for (key, value) in allHTTPHeaderFields {
-                print("  \(key) : \(value)")
+                print("\(key) : \(value)\n")
             }
         }
     }
 
     private func logBody(_ urlRequest: URLRequest) {
+        print("BODY:\n")
         if let body = urlRequest.httpBody,
             let str = String(data: body, encoding: .utf8) {
-            print("  HttpBody : \(str)")
+            print("\(str)\n")
         }
     }
 
     private func logStatusCodeAndURL(_ urlResponse: HTTPURLResponse) {
+        var log = "----- HTTP Response -----\n"
+
         if let url = urlResponse.url {
-            print("\(urlResponse.statusCode) '\(url.absoluteString)'")
+            log  += "\(urlResponse.statusCode) from '\(url.absoluteString)'"
         }
+        print(log)
     }
     
     private func logCurl(_ urlRequest: URLRequest) {
