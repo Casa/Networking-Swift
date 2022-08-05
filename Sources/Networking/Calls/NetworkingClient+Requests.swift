@@ -31,7 +31,7 @@ public extension NetworkingClient {
     }
 
     internal func request(_ httpMethod: HTTPMethod, _ route: String, params: Params = Params(), data: Data? = nil) -> NetworkingRequest {
-        let req = NetworkingRequest()
+        let req = NetworkingRequest(logger: self.logger)
         req.httpMethod             = httpMethod
         req.route                = route
         req.params               = params
