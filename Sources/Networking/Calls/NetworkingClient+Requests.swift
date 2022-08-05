@@ -45,6 +45,7 @@ public extension NetworkingClient {
             req?.parameterEncoding    = self.parameterEncoding
             req?.sessionConfiguration = self.sessionConfiguration
             req?.timeout              = self.timeout
+            req?.sessionDelegate      = self.sessionDelegate ?? nil 
         }
         updateRequest()
         req.requestRetrier = { [weak self] in

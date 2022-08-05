@@ -14,6 +14,7 @@ public class NetworkingClient {
     public var parameterEncoding = ParameterEncoding.urlEncoded
     public var timeout: TimeInterval?
     public var sessionConfiguration = URLSessionConfiguration.default
+    public var sessionDelegate: URLSessionDelegate?
     public var requestRetrier: NetworkRequestRetrier?
     public var jsonDecoderFactory: (() -> JSONDecoder)?
 

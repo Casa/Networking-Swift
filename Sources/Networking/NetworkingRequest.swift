@@ -28,6 +28,7 @@ public class NetworkingRequest: NSObject {
     var timeout: TimeInterval?
     let progressPublisher = PassthroughSubject<Progress, Error>()
     var sessionConfiguration: URLSessionConfiguration?
+    var sessionDelegate: URLSessionDelegate?
     var requestRetrier: NetworkRequestRetrier?
     private let maxRetryCount = 3
 
@@ -44,7 +45,8 @@ public class NetworkingRequest: NSObject {
         logger.log(request: urlRequest)
 
         let config = sessionConfiguration ?? URLSessionConfiguration.default
-        let urlSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        let sessionDelegate = sessionDelegate ?? self
+        let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
         let callPublisher: AnyPublisher<(Data?, Progress), Error> = urlSession.dataTaskPublisher(for: urlRequest)
             .tryMap { (data: Data, response: URLResponse) -> Data in
                 self.logger.log(response: response, data: data)
@@ -85,7 +87,8 @@ public class NetworkingRequest: NSObject {
         logger.log(request: urlRequest)
 
         let config = sessionConfiguration ?? URLSessionConfiguration.default
-        let urlSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        let sessionDelegate = sessionDelegate ?? self
+        let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
         return urlSession.dataTaskPublisher(for: urlRequest)
             .tryMap { (data: Data, response: URLResponse) -> Data in
                 self.logger.log(response: response, data: data)
@@ -123,7 +126,8 @@ public class NetworkingRequest: NSObject {
         }
         logger.log(request: urlRequest)
         let config = sessionConfiguration ?? URLSessionConfiguration.default
-        let urlSession = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        let sessionDelegate = sessionDelegate ?? self
+        let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
         return try await withCheckedThrowingContinuation { continuation in
             urlSession.dataTask(with: urlRequest) { data, response, error in
                 guard let data = data, let response = response else {
