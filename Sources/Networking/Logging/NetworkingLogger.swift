@@ -12,62 +12,83 @@ class NetworkingLogger {
     var logLevel = NetworkingLogLevel.off
 
     func log(request: URLRequest) {
-        guard logLevel != .off else {
+        // If nil, it means that our .logLevel is .off
+        if let logString = requestLogString(request: request) {
+            print(logString)
+        } else {
             return
-        }
-        if let method = request.httpMethod,
-            let url = request.url {
-            print("----- HTTP Request -----\n")
-            print("\(method) to '\(url.absoluteString)'")
-            logHeaders(request)
-            logBody(request)
-
-        }
-        if logLevel == .debug {
-            logCurl(request)
         }
     }
 
     func log(response: URLResponse, data: Data) {
-        guard logLevel != .off else {
+        // If nil, it means that our .logLevel is .off
+        if let logString = responseLogString(response: response, data: data) {
+            print(logString)
+        } else {
             return
         }
-        if let response = response as? HTTPURLResponse {
-            logStatusCodeAndURL(response)
-        }
-        if logLevel == .debug {
-            print(String(decoding: data, as: UTF8.self))
-        }
     }
 
-    private func logHeaders(_ urlRequest: URLRequest) {
-        print("HEADERS:\n")
-        if let allHTTPHeaderFields = urlRequest.allHTTPHeaderFields {
-            for (key, value) in allHTTPHeaderFields {
-                print("\(key) : \(value)\n")
-            }
+    internal func responseLogString(response: URLResponse, data: Data) -> String? {
+        guard logLevel != .off else {
+            return nil
         }
-    }
-
-    private func logBody(_ urlRequest: URLRequest) {
-        print("BODY:\n")
-        if let body = urlRequest.httpBody,
-            let str = String(data: body, encoding: .utf8) {
-            print("\(str)\n")
-        }
-    }
-
-    private func logStatusCodeAndURL(_ urlResponse: HTTPURLResponse) {
         var log = "----- HTTP Response -----\n"
 
-        if let url = urlResponse.url {
-            log  += "\(urlResponse.statusCode) from '\(url.absoluteString)'"
+        if let response = response as? HTTPURLResponse {
+            log += logStatusCodeAndURL(response)
         }
-        print(log)
+
+        if logLevel == .debug {
+            log += String(decoding: data, as: UTF8.self)
+        } 
+
+        return log
     }
-    
-    private func logCurl(_ urlRequest: URLRequest) {
-        print(urlRequest.toCurlCommand())
+
+     func requestLogString(request: URLRequest) -> String? {
+        guard logLevel != .off else {
+            return nil
+        }
+        var log = "----- HTTP Request -----\n"
+
+        if let method = request.httpMethod,
+            let url = request.url {
+            log += "\(method) to '\(url.absoluteString)'\n"
+            log += logHeaders(request)
+            log += logBody(request)
+        }
+        if logLevel == .debug {
+            log += request.toCurlCommand()
+        }
+
+        return log
+    }
+
+    private func logStatusCodeAndURL(_ urlResponse: HTTPURLResponse) -> String {
+        if let url = urlResponse.url {
+            return "\(urlResponse.statusCode) from '\(url.absoluteString)'\n"
+        }
+        return ""
+    }
+
+    private func logHeaders(_ urlRequest: URLRequest) -> String {
+        var log = "HEADERS:\n"
+        if let allHTTPHeaderFields = urlRequest.allHTTPHeaderFields {
+            for (key, value) in allHTTPHeaderFields {
+                log += "\(key) : \(value)\n"
+            }
+        }
+        return log
+    }
+
+    private func logBody(_ urlRequest: URLRequest) -> String {
+        var log = "BODY:\n"
+        if let body = urlRequest.httpBody,
+            let str = String(data: body, encoding: .utf8) {
+            log += "\(str)\n"
+        }
+        return log
     }
 }
 
