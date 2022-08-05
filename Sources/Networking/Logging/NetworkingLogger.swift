@@ -10,6 +10,11 @@ import Foundation
 class NetworkingLogger {
 
     var logLevel = NetworkingLogLevel.off
+    let filteredWords: [String]
+
+    init(filteredWords: [String] = []) {
+        self.filteredWords = filteredWords
+    }
 
     func log(request: URLRequest) {
         // If nil, it means that our .logLevel is .off
@@ -76,7 +81,11 @@ class NetworkingLogger {
         var log = "HEADERS:\n"
         if let allHTTPHeaderFields = urlRequest.allHTTPHeaderFields {
             for (key, value) in allHTTPHeaderFields {
-                log += "\(key) : \(value)\n"
+                if filteredWords.contains(key) {
+                    log += "\(key) : [FILTERED]\n"
+                } else {
+                    log += "\(key) : \(value)\n"
+                }
             }
         }
         return log

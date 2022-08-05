@@ -24,12 +24,16 @@ public class NetworkingRequest: NSObject {
         get { return logger.logLevel }
         set { logger.logLevel = newValue }
     }
-    private let logger = NetworkingLogger()
+    private let logger: NetworkingLogger
     var timeout: TimeInterval?
     let progressPublisher = PassthroughSubject<Progress, Error>()
     var sessionConfiguration: URLSessionConfiguration?
     var requestRetrier: NetworkRequestRetrier?
     private let maxRetryCount = 3
+
+    init(logger: NetworkingLogger = NetworkingLogger()) {
+        self.logger = logger
+    }
 
     public func uploadPublisher() -> AnyPublisher<(Data?, Progress), Error> {
         

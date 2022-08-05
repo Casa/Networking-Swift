@@ -73,4 +73,14 @@ final class LoggerTests: XCTestCase {
         XCTAssertNotNil(stringToLog)
         XCTAssert(stringToLog!.contains("{\"title\": \"Hello world\"}"))
     }
+
+    func testFilteredLogs() {
+        let filteringLogger = NetworkingLogger(filteredWords: ["secret"])
+        filteringLogger.logLevel = .info
+        sampleRequest.addValue("hush", forHTTPHeaderField: "secret")
+ 
+        let stringToLog = filteringLogger.requestLogString(request: sampleRequest)
+        XCTAssertNotNil(stringToLog)
+        XCTAssertFalse(stringToLog!.contains("hush"))
+    }
 }

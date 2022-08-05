@@ -27,11 +27,12 @@ public class NetworkingClient {
         set { logger.logLevel = newValue }
     }
 
-    private let logger = NetworkingLogger()
+    internal let logger: NetworkingLogger 
 
-    public init(baseURL: String, timeout: TimeInterval? = nil) {
+    public init(baseURL: String, timeout: TimeInterval? = nil, filteredWords: [String] = []) {
         self.baseURL = baseURL
         self.timeout = timeout
+        self.logger = NetworkingLogger(filteredWords: filteredWords)
     }
     
     public func toModel<T: NetworkingJSONDecodable>(_ json: Any, keypath: String? = nil) throws -> T {
