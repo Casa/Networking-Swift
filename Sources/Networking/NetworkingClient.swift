@@ -16,6 +16,7 @@ public class NetworkingClient {
     public var sessionConfiguration = URLSessionConfiguration.default
     public var sessionDelegate: URLSessionDelegate?
     public var requestRetrier: NetworkRequestRetrier?
+    public var asyncRequestRetrier: NetworkRequestRetrierAsync?
     public var jsonDecoderFactory: (() -> JSONDecoder)?
 
     /**

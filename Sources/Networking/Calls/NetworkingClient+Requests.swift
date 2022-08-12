@@ -55,6 +55,7 @@ public extension NetworkingClient {
                 })
                 .eraseToAnyPublisher()
         }
+        req.asyncRequestRetrier = self.asyncRequestRetrier;
         return req
     }
 }
