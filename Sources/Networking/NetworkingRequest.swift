@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 public typealias NetworkRequestRetrier = (_ request: URLRequest, _ error: Error, _ retryCount: Int) -> AnyPublisher<Void, Error>?
-public typealias NetworkRequestRetrierAsync = (_ request: URLRequest, _ error: Error) async throws -> Data;
+public typealias NetworkRequestRetrierAsync = (_ request: URLRequest, _ error: Error, _ retryCount: Int) async throws -> Data;
 
 public class NetworkingRequest: NSObject {
     
@@ -121,8 +121,12 @@ public class NetworkingRequest: NSObject {
                 return NetworkingError(error: error)
             }.receive(on: DispatchQueue.main).eraseToAnyPublisher()
     }
+
+    func execute() async throws -> Data {
+        try await execute(retryCount: maxRetryCount)
+    }
     
-    func execute(allowRetry: Bool = true) async throws -> Data {
+    private func execute(retryCount: Int) async throws -> Data {
         guard let urlRequest = buildURLRequest() else {
             throw NetworkingError.unableToParseRequest
         }
@@ -135,10 +139,11 @@ public class NetworkingRequest: NSObject {
         if let httpResponse = urlResponse as? HTTPURLResponse,
             !(200...299 ~= httpResponse.statusCode) {
                 let error = NetworkingError(errorCode: httpResponse.statusCode)
-                if allowRetry {
-                    _ = try await self.asyncRequestRetrier?(urlRequest, error)
+                if retryCount >= 1,
+                    let asyncRetrier = self.asyncRequestRetrier {
+                    _ = try await asyncRetrier(urlRequest, error, retryCount)
 
-                    return try await execute(allowRetry: false)
+                    return try await execute(retryCount: retryCount - 1)
                 }
 
                 throw error

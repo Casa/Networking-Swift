@@ -55,7 +55,14 @@ public extension NetworkingClient {
                 })
                 .eraseToAnyPublisher()
         }
-        req.asyncRequestRetrier = self.asyncRequestRetrier;
+
+        req.asyncRequestRetrier = updateAndRetryAsync(updateRequest: { updateRequest() }, request: self.asyncRequestRetrier) 
         return req
+    }
+
+    // Curry NetworkRequestRetrierAsync to run some arbitrary update request operation before returning the request.
+    private func updateAndRetryAsync(updateRequest: () -> (), request: NetworkRequestRetrierAsync?) -> NetworkRequestRetrierAsync? {
+        updateRequest()
+        return request;
     }
 }
