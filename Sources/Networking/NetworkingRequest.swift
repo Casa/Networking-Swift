@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 public typealias NetworkRequestRetrier = (_ request: URLRequest, _ error: Error, _ retryCount: Int) -> AnyPublisher<Void, Error>?
-public typealias NetworkRequestRetrierAsync = (_ request: URLRequest, _ error: Error, _ retryCount: Int) async throws -> Data;
+public typealias NetworkRequestRetrierAsync = (_ request: URLRequest, _ error: Error, _ retryCount: Int) async throws -> Void;
 
 public class NetworkingRequest: NSObject {
     
