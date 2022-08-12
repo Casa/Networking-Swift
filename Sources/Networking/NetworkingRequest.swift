@@ -9,6 +9,7 @@ import Foundation
 import Combine
 
 public typealias NetworkRequestRetrier = (_ request: URLRequest, _ error: Error, _ retryCount: Int) -> AnyPublisher<Void, Error>?
+public typealias NetworkRequestRetrierAsync = (_ request: URLRequest, _ error: Error) async throws -> Data;
 
 public class NetworkingRequest: NSObject {
     
@@ -30,6 +31,7 @@ public class NetworkingRequest: NSObject {
     var sessionConfiguration: URLSessionConfiguration?
     var sessionDelegate: URLSessionDelegate?
     var requestRetrier: NetworkRequestRetrier?
+    var asyncRequestRetrier: NetworkRequestRetrierAsync?
     private let maxRetryCount = 3
 
     init(logger: NetworkingLogger = NetworkingLogger()) {
@@ -120,7 +122,7 @@ public class NetworkingRequest: NSObject {
             }.receive(on: DispatchQueue.main).eraseToAnyPublisher()
     }
     
-    func execute() async throws -> Data {
+    func execute(allowRetry: Bool = true) async throws -> Data {
         guard let urlRequest = buildURLRequest() else {
             throw NetworkingError.unableToParseRequest
         }
@@ -128,28 +130,21 @@ public class NetworkingRequest: NSObject {
         let config = sessionConfiguration ?? URLSessionConfiguration.default
         let sessionDelegate = sessionDelegate ?? self
         let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
-        return try await withCheckedThrowingContinuation { continuation in
-            urlSession.dataTask(with: urlRequest) { data, response, error in
-                guard let data = data, let response = response else {
-                    if let error = error {
-                        continuation.resume(throwing: error)
-                    }
-                    return
+
+        let (data, urlResponse) = try await urlSession.data(for: urlRequest)
+        if let httpResponse = urlResponse as? HTTPURLResponse,
+            !(200...299 ~= httpResponse.statusCode) {
+                let error = NetworkingError(errorCode: httpResponse.statusCode)
+                if allowRetry {
+                    _ = try await self.asyncRequestRetrier?(urlRequest, error)
+
+                    return try await execute(allowRetry: false)
                 }
-                self.logger.log(response: response, data: data)
-                if let httpURLResponse = response as? HTTPURLResponse {
-                    if !(200...299 ~= httpURLResponse.statusCode) {
-                        var error = NetworkingError(errorCode: httpURLResponse.statusCode)
-                        if let json = try? JSONSerialization.jsonObject(with: data, options: []) {
-                            error.jsonPayload = json
-                        }
-                        continuation.resume(throwing: error)
-                        return
-                    }
-                }
-                continuation.resume(returning: data)
-            }.resume()
-        }
+
+                throw error
+            }
+
+        return data;
     }
     
     private func getURLWithParams() -> String {
@@ -269,4 +264,22 @@ extension NetworkingRequest: URLSessionTaskDelegate {
 public enum ParameterEncoding {
     case urlEncoded
     case json
+}
+
+@available(iOS, deprecated: 15.0, message: "Use the built-in API instead")
+extension URLSession {
+    func data(for urlRequest: URLRequest) async throws -> (Data, URLResponse) {
+        try await withCheckedThrowingContinuation { continuation in
+            let task = self.dataTask(with: urlRequest) { data, response, error in
+                guard let data = data, let response = response else {
+                    let error = error ?? URLError(.badServerResponse)
+                    return continuation.resume(throwing: error)
+                }
+
+                continuation.resume(returning: (data, response))
+            }
+
+            task.resume()
+        }
+    }
 }
