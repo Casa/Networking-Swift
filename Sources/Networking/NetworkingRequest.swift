@@ -122,7 +122,7 @@ public class NetworkingRequest: NSObject {
             }.receive(on: DispatchQueue.main).eraseToAnyPublisher()
     }
 
-    func execute() async throws -> Data {
+    public func execute() async throws -> Data {
         try await execute(retryCount: maxRetryCount)
     }
     
