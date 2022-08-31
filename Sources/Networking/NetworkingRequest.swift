@@ -138,7 +138,11 @@ public class NetworkingRequest: NSObject {
         let (data, urlResponse) = try await urlSession.data(for: urlRequest)
         if let httpResponse = urlResponse as? HTTPURLResponse,
             !(200...299 ~= httpResponse.statusCode) {
-                let error = NetworkingError(errorCode: httpResponse.statusCode)
+                var error = NetworkingError(errorCode: httpResponse.statusCode)
+                if let json = try? JSONSerialization.jsonObject(with: data, options: []) {
+                    error.jsonPayload = json
+                }
+
                 if retryCount >= 1,
                     let asyncRetrier = self.asyncRequestRetrier {
                     _ = try await asyncRetrier(urlRequest, error, retryCount)
