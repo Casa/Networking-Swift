@@ -43,10 +43,8 @@ class NetworkingLogger {
         if let response = response as? HTTPURLResponse {
             log += logStatusCodeAndURL(response)
         }
-
-        if logLevel == .debug {
-            log += String(decoding: data, as: UTF8.self)
-        } 
+        
+        log += String(decoding: data, as: UTF8.self)
 
         return log
     }
