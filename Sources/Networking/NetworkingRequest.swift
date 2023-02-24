@@ -138,7 +138,6 @@ public class NetworkingRequest: NSObject {
         let (data, urlResponse) = try await urlSession.data(for: urlRequest)
         if let httpResponse = urlResponse as? HTTPURLResponse,
             !(200...299 ~= httpResponse.statusCode) {
-                logger.log(response: httpResponse, data: data)
                 var error = NetworkingError(errorCode: httpResponse.statusCode)
                 if let json = try? JSONSerialization.jsonObject(with: data, options: []) {
                     error.jsonPayload = json
