@@ -92,7 +92,7 @@ class NetworkingLogger {
     private func logBody(_ urlRequest: URLRequest) -> String {
         var log = "BODY:\n"
         if let body = urlRequest.httpBody,
-            let str = String(data: body, encoding: .utf8) {
+            var str = String(data: body, encoding: .utf8) {
             
             if filteredWords.count > 0 {
                 str = str.filtered(sensitiveWords: filteredWords)
