@@ -92,10 +92,41 @@ class NetworkingLogger {
     private func logBody(_ urlRequest: URLRequest) -> String {
         var log = "BODY:\n"
         if let body = urlRequest.httpBody,
-            let str = String(data: body, encoding: .utf8) {
+            var str = String(data: body, encoding: .utf8) {
+            
+            if filteredWords.count > 0 {
+                str = str.filtered(sensitiveWords: filteredWords)
+            }
+            
             log += "\(str)\n"
         }
         return log
+    }
+}
+
+// MARK: String helpers
+extension String
+{
+    func filtered(sensitiveWords: [String]) -> String
+    {
+        var filterSearchRegex = ""
+        for word in sensitiveWords
+        {
+            filterSearchRegex.append(word)
+            if word != sensitiveWords.last
+            {
+                filterSearchRegex.append("|")
+            }
+        }
+        
+        let regexExpression = String(format: "\"(%@)\" *: *[^,}]*", filterSearchRegex)
+        if let regex = try? NSRegularExpression(pattern: regexExpression, options: .caseInsensitive)
+        {
+            //let matches = regex.matches(in: self, options: [], range: NSRange(location: 0, length: string.length))
+            return regex.stringByReplacingMatches(in: self, options: [], range: NSRange(location: 0, length: self.count), withTemplate: "$1: [FILTERED]")
+        }
+        
+        return self
     }
 }
 
