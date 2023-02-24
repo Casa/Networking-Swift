@@ -44,7 +44,11 @@ class NetworkingLogger {
             log += logStatusCodeAndURL(response)
         }
         
-        log += String(decoding: data, as: UTF8.self)
+        var str = String(decoding: data, as: UTF8.self)
+        if filteredWords.count > 0 {
+            str = str.filtered(sensitiveWords: filteredWords)
+        }
+        log += str
 
         return log
     }
