@@ -154,6 +154,7 @@ public class NetworkingRequest: NSObject {
                 throw error
             }
 
+        logger.log(response: urlResponse, data: data)
         return data;
     }
     
