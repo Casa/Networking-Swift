@@ -31,7 +31,7 @@ public extension NetworkingClient {
     }
 
     internal func request(_ httpMethod: HTTPMethod, _ route: String, params: Params = Params(), data: Data? = nil) -> NetworkingRequest {
-        let req = NetworkingRequest(logger: self.logger)
+        let req = NetworkingRequest(logger: self.logger, urlSession: self.urlSession)
         req.httpMethod             = httpMethod
         req.route                = route
         req.params               = params
@@ -43,9 +43,7 @@ public extension NetworkingClient {
             req?.logLevel             = self.logLevel
             req?.headers              = self.headers
             req?.parameterEncoding    = self.parameterEncoding
-            req?.sessionConfiguration = self.sessionConfiguration
             req?.timeout              = self.timeout
-            req?.sessionDelegate      = self.sessionDelegate ?? nil 
         }
         updateRequest()
         req.requestRetrier = { [weak self] in
