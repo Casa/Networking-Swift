@@ -28,14 +28,14 @@ public class NetworkingRequest: NSObject {
     private let logger: NetworkingLogger
     var timeout: TimeInterval?
     let progressPublisher = PassthroughSubject<Progress, Error>()
-    var sessionConfiguration: URLSessionConfiguration?
-    var sessionDelegate: URLSessionDelegate?
+    private let urlSession: URLSession
     var requestRetrier: NetworkRequestRetrier?
     var asyncRequestRetrier: NetworkRequestRetrierAsync?
     private let maxRetryCount = 3
 
-    init(logger: NetworkingLogger = NetworkingLogger()) {
+    init(logger: NetworkingLogger = NetworkingLogger(), urlSession: URLSession = URLSession.shared) {
         self.logger = logger
+        self.urlSession = urlSession
     }
 
     public func uploadPublisher() -> AnyPublisher<(Data?, Progress), Error> {
@@ -46,10 +46,9 @@ public class NetworkingRequest: NSObject {
         }
         logger.log(request: urlRequest)
 
-        let config = sessionConfiguration ?? URLSessionConfiguration.default
-        let sessionDelegate = sessionDelegate ?? self
-        let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
-        let callPublisher: AnyPublisher<(Data?, Progress), Error> = urlSession.dataTaskPublisher(for: urlRequest)
+        // For upload progress tracking, we need a dedicated session with this request as delegate
+        let uploadSession = URLSession(configuration: urlSession.configuration, delegate: self, delegateQueue: nil)
+        let callPublisher: AnyPublisher<(Data?, Progress), Error> = uploadSession.dataTaskPublisher(for: urlRequest)
             .tryMap { (data: Data, response: URLResponse) -> Data in
                 self.logger.log(response: response, data: data)
                 if let httpURLResponse = response as? HTTPURLResponse {
@@ -66,7 +65,14 @@ public class NetworkingRequest: NSObject {
                 return NetworkingError(error: error)
             }.map { data -> (Data?, Progress) in
                 return (data, Progress())
-            }.eraseToAnyPublisher()
+            }.handleEvents(receiveCompletion: { _ in
+                // Clean up the upload session after completion
+                uploadSession.finishTasksAndInvalidate()
+            }, receiveCancel: {
+                // Clean up the upload session if cancelled
+                uploadSession.invalidateAndCancel()
+            })
+            .eraseToAnyPublisher()
         
         let progressPublisher2: AnyPublisher<(Data?, Progress), Error> = progressPublisher
             .map { progress -> (Data?, Progress) in
@@ -88,9 +94,6 @@ public class NetworkingRequest: NSObject {
         }
         logger.log(request: urlRequest)
 
-        let config = sessionConfiguration ?? URLSessionConfiguration.default
-        let sessionDelegate = sessionDelegate ?? self
-        let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
         return urlSession.dataTaskPublisher(for: urlRequest)
             .tryMap { (data: Data, response: URLResponse) -> Data in
                 self.logger.log(response: response, data: data)
@@ -131,9 +134,6 @@ public class NetworkingRequest: NSObject {
             throw NetworkingError.unableToParseRequest
         }
         logger.log(request: urlRequest)
-        let config = sessionConfiguration ?? URLSessionConfiguration.default
-        let sessionDelegate = sessionDelegate ?? self
-        let urlSession = URLSession(configuration: config, delegate: sessionDelegate, delegateQueue: nil)
 
         let (data, urlResponse) = try await urlSession.data(for: urlRequest)
         if let httpResponse = urlResponse as? HTTPURLResponse,

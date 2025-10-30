@@ -30,6 +30,15 @@ public class NetworkingClient {
     }
 
     internal let logger: NetworkingLogger 
+    
+    // URLSession is created lazily and reused for all requests from this client
+    // The session is shared by reference with all NetworkingRequest instances,
+    // so it remains alive as long as any requests are using it
+    internal lazy var urlSession: URLSession = {
+        let config = sessionConfiguration
+        let delegate = sessionDelegate
+        return URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+    }()
 
     public init(baseURL: String, timeout: TimeInterval? = nil, filteredWords: [String] = []) {
         self.baseURL = baseURL

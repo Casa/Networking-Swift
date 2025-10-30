@@ -9,8 +9,8 @@ final class NetworkingTests: XCTestCase {
 
     func testBadURLDoesntCrash() {
         let exp = expectation(description: "call")
-        let client = NetworkingClient(baseURL: "https://jsonplaceholder.typicode.com")
-        client.get("/forge a bad url")
+        let client = NetworkingClient(baseURL: "ht!tp://invalid url with spaces")
+        client.get("/users")
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
@@ -24,6 +24,7 @@ final class NetworkingTests: XCTestCase {
             receiveValue: { (json: Any) in
             print(json)
         }).store(in: &cancellables)
+        
         waitForExpectations(timeout: 1, handler: nil)
     }
 }
