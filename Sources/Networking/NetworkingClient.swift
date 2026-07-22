@@ -10,7 +10,40 @@ public class NetworkingClient {
      */
     public var defaultCollectionParsingKeyPath: String?
     let baseURL: String
-    public var headers = [String: String]()
+
+    // Headers are read on every request build (including retries on URLSession/Combine
+    // threads) and mutated on auth token refresh from arbitrary threads. Dictionary is
+    // not thread-safe, so all access goes through a lock. The public property keeps the
+    // same get/set surface as the previous stored `var`.
+    private let headersLock = NSLock()
+    private var _headers = [String: String]()
+    public var headers: [String: String] {
+        get {
+            headersLock.lock()
+            defer { headersLock.unlock() }
+            return _headers
+        }
+        set {
+            headersLock.lock()
+            defer { headersLock.unlock() }
+            _headers = newValue
+        }
+    }
+
+    /**
+        Atomically reads and mutates the headers dictionary under the same lock that
+        protects the `headers` property. Use this instead of get-modify-set on `headers`
+        when the modification must not race with other writers (e.g. merging auth headers).
+        Do not access `headers` or call `withHeaders` again from inside `body` — the lock
+        is not reentrant.
+    */
+    @discardableResult
+    public func withHeaders<T>(_ body: (inout [String: String]) -> T) -> T {
+        headersLock.lock()
+        defer { headersLock.unlock() }
+        return body(&_headers)
+    }
+
     public var parameterEncoding = ParameterEncoding.urlEncoded
     public var timeout: TimeInterval?
     public var sessionConfiguration = URLSessionConfiguration.default
