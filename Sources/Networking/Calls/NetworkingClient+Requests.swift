@@ -54,13 +54,20 @@ public extension NetworkingClient {
                 .eraseToAnyPublisher()
         }
 
-        req.asyncRequestRetrier = updateAndRetryAsync(updateRequest: { updateRequest() }, request: self.asyncRequestRetrier) 
+        req.asyncRequestRetrier = updateAndRetryAsync(updateRequest: { updateRequest() }, request: self.asyncRequestRetrier)
         return req
     }
 
-    // Curry NetworkRequestRetrierAsync to run some arbitrary update request operation before returning the request.
-    private func updateAndRetryAsync(updateRequest: () -> (), request: NetworkRequestRetrierAsync?) -> NetworkRequestRetrierAsync? {
-        updateRequest()
-        return request;
+    // Wrap NetworkRequestRetrierAsync so the request copies the client's current headers (and other
+    // settings) after the retrier finishes. A retrier that refreshes an auth token sets new headers
+    // on the client; the retried request must send them, not the headers it was first built with.
+    private func updateAndRetryAsync(updateRequest: @escaping () -> (), request: NetworkRequestRetrierAsync?) -> NetworkRequestRetrierAsync? {
+        guard let request = request else {
+            return nil
+        }
+        return { urlRequest, error, retryCount in
+            try await request(urlRequest, error, retryCount)
+            updateRequest()
+        }
     }
 }
